@@ -32,9 +32,9 @@
             <Label text="Input file:" />
             <Button mnemonicParsing="false" onAction="#selectInputFile" text="..." GridPane.rowIndex="1" />
             <Label fx:id="inputFileLabel" prefHeight="36.0" prefWidth="556.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            <Label prefHeight="21.0" prefWidth="128.0" text="Output directory:" GridPane.rowIndex="2" />
+            <Label prefHeight="21.0" prefWidth="128.0" text="Output file:" GridPane.rowIndex="2" />
             <Button mnemonicParsing="false" onAction="#selectOutputDirectory" text="..." GridPane.rowIndex="3" />
-            <Label fx:id="outputDirectoryLabel" prefHeight="34.0" prefWidth="548.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+            <Label fx:id="outputFileLabel" prefHeight="34.0" prefWidth="548.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <Label text="Copy buffer size:" GridPane.rowIndex="4" />
             <TextField fx:id="copyBufferSizeTextField" text="256" GridPane.columnIndex="1" GridPane.rowIndex="4" />
             <Label text="Copy buffer fill:" GridPane.rowIndex="5" />
