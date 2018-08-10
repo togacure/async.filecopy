@@ -3,6 +3,7 @@ package com.togacure.async.filecopy.ui;
 import java.util.Optional;
 
 import com.togacure.async.filecopy.util.FileDescriptor;
+import com.togacure.async.filecopy.util.Utils;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -64,6 +65,18 @@ public class MainController {
 						});
 						outputFileLabel.setText(outputFile.toPath());
 					});
+		});
+	}
+
+	@FXML
+	public void onInputCopyBufferSize() {
+		Platform.runLater(() -> {
+			Optional.ofNullable(copyBufferSizeTextField.getText()).filter(Utils::isNotNullOrEmpty).ifPresent((v) -> {
+				copyBufferSizeTextField.setText(v.replaceAll("[^\\d]", ""));
+			});
+			Optional.ofNullable(copyBufferSizeTextField.getText()).filter(Utils::isNullOrEmpty).ifPresent((v) -> {
+				copyBufferSizeTextField.setText("256");
+			});
 		});
 	}
 

@@ -36,7 +36,7 @@
             <Button mnemonicParsing="false" onAction="#selectOutputDirectory" text="..." GridPane.rowIndex="3" />
             <Label fx:id="outputFileLabel" prefHeight="34.0" prefWidth="548.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
             <Label text="Copy buffer size:" GridPane.rowIndex="4" />
-            <TextField fx:id="copyBufferSizeTextField" text="256" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+            <TextField fx:id="copyBufferSizeTextField" onKeyTyped="#onInputCopyBufferSize" text="256" GridPane.columnIndex="1" GridPane.rowIndex="4" />
             <Label text="Copy buffer fill:" GridPane.rowIndex="5" />
             <HBox prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
                <children>
