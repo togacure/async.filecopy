@@ -3,6 +3,10 @@ package com.togacure.async.filecopy.util;
 import java.util.Collection;
 import java.util.Map;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public abstract class Utils {
 
 	public static final boolean isNotNullOrEmpty(Object o) {
@@ -13,7 +17,7 @@ public abstract class Utils {
 		if (o == null) {
 			return true;
 		} else if (o instanceof String) {
-			return ((String) o).isEmpty();
+			return ((String) o).trim().isEmpty();
 		} else if (o instanceof Collection) {
 			return ((Collection<?>) o).isEmpty();
 		} else if (o instanceof Map) {
@@ -22,6 +26,4 @@ public abstract class Utils {
 		return false;
 	}
 
-	private Utils() {
-	}
 }

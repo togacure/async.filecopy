@@ -1,5 +1,9 @@
 package com.togacure.async.filecopy.threads;
 
+import static com.togacure.async.filecopy.util.Syncronized.get;
+import static com.togacure.async.filecopy.util.Syncronized.throwsExecute;
+import static com.togacure.async.filecopy.util.Syncronized.throwsGet;
+
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -40,22 +44,12 @@ public abstract class AbstractThread implements IThread {
 
 	@Override
 	public FileDescriptor getFileDescriptor() {
-		lock.lock();
-		try {
-			return fileDescriptor;
-		} finally {
-			lock.unlock();
-		}
+		return get(lock, () -> fileDescriptor);
 	}
 
 	@Override
 	public ThreadState getCurrentState() {
-		lock.lock();
-		try {
-			return currentState;
-		} finally {
-			lock.unlock();
-		}
+		return get(lock, () -> currentState);
 	}
 
 	@Override
@@ -78,8 +72,7 @@ public abstract class AbstractThread implements IThread {
 
 	@Override
 	public void switchFile(FileDescriptor fd) throws OperationDeniedException {
-		lock.lock();
-		try {
+		throwsExecute(lock, () -> {
 			switch (currentState) {
 			case alive:
 			case paused:
@@ -89,16 +82,12 @@ public abstract class AbstractThread implements IThread {
 				checkFileDescriptor(fd);
 				fileDescriptor = fd;
 			}
-		} finally {
-			lock.unlock();
-		}
+		});
 	}
 
 	@Override
-	@SneakyThrows(InterruptedException.class)
 	public ThreadState switchState() throws OperationDeniedException {
-		lock.lock();
-		try {
+		return throwsGet(lock, () -> {
 			switch (currentState) {
 			case alive:
 				currentState = ThreadState.paused;
@@ -112,17 +101,13 @@ public abstract class AbstractThread implements IThread {
 				currentState = ThreadState.alive;
 				startTask();
 			}
-			messageQueue.put(new ChangeStateMessage());
+			putMessageWrapper(new ChangeStateMessage());
 			return currentState;
-		} finally {
-			lock.unlock();
-		}
+		});
 	}
 
-	@SneakyThrows(InterruptedException.class)
 	protected void setState(ThreadState state) throws OperationDeniedException {
-		lock.lock();
-		try {
+		throwsExecute(lock, () -> {
 			switch (currentState) {
 			case alive:
 				currentState = Optional.ofNullable(state).filter((v) -> {
@@ -143,17 +128,21 @@ public abstract class AbstractThread implements IThread {
 				}).orElseThrow(IncorrectFlowState::new);
 				startTask();
 			}
-			messageQueue.put(new ChangeStateMessage());
-		} finally {
-			lock.unlock();
-		}
+			putMessageWrapper(new ChangeStateMessage());
+		});
 	}
 
 	private void startTask() {
 		THREAD_POOL.submit(this);
 	}
 
-	private static void checkFileDescriptor(FileDescriptor fd) throws FileNotSelectedException {
+	@SneakyThrows(InterruptedException.class)
+	protected void putMessageWrapper(IMessage msg) {
+		messageQueue.put(msg);
+	}
+
+	@SneakyThrows(FileNotSelectedException.class)
+	private static void checkFileDescriptor(FileDescriptor fd) {
 		Optional.ofNullable(fd).map(v -> v.toPath()).filter(Utils::isNotNullOrEmpty)
 				.orElseThrow(FileNotSelectedException::new);
 	}
