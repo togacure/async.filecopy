@@ -13,7 +13,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.togacure.async.filecopy.threads.messages.ChangeStateMessage;
+import com.togacure.async.filecopy.threads.messages.EOFMessage;
 import com.togacure.async.filecopy.threads.messages.IMessage;
+import com.togacure.async.filecopy.threads.messages.ResumeOperationsMessage;
+import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
+import com.togacure.async.filecopy.threads.messages.SuspendOperationsMessage;
 import com.togacure.async.filecopy.util.FileDescriptor;
 import com.togacure.async.filecopy.util.Utils;
 import com.togacure.async.filecopy.util.exceptions.FileNotSelectedException;
@@ -23,7 +27,7 @@ import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 
 import lombok.SneakyThrows;
 
-public abstract class AbstractThread implements IThread {
+public abstract class AbstractThread implements IThread, IMessageReceiver {
 
 	private static final int DEFAULT_INITIAL_CAPACITY = 32;
 
@@ -36,6 +40,8 @@ public abstract class AbstractThread implements IThread {
 	private ThreadState currentState = ThreadState.death;
 
 	private final Lock lock = new ReentrantLock(true);
+
+	private final Object sleepMonitor = new Object();
 
 	private final BlockingQueue<IMessage> messageQueue = new PriorityBlockingQueue<IMessage>(DEFAULT_INITIAL_CAPACITY,
 			(v1, v2) -> {
@@ -57,16 +63,50 @@ public abstract class AbstractThread implements IThread {
 	public void run() {
 		IMessage message;
 		while ((message = messageQueue.take()) != null) {
-			if (message instanceof ChangeStateMessage && getCurrentState() == ThreadState.death) {
-				closeFile();
-				break;
-			} else {
+			if (message instanceof ChangeStateMessage) {
+				switch (getCurrentState()) {
+				case alive:
+					try {
+						handleMessage(new ResumeOperationsMessage());
+					} catch (ThreadStopException e) {
+						setState(ThreadState.death);
+					}
+					break;
+				case paused:
+					try {
+						handleMessage(new SuspendOperationsMessage());
+					} catch (ThreadStopException e) {
+						setState(ThreadState.death);
+					}
+					break;
+				case death:
+					closeFile();
+					return;
+				}
+			} else if (message instanceof SingleOperationMessage) {
 				try {
-					handleMessage(message);
+					handleMessage((SingleOperationMessage) message);
 				} catch (ThreadStopException e) {
 					setState(ThreadState.death);
 				}
+			} else {
+				throw new RuntimeException(String.format("Unknown message %s", message));
 			}
+		}
+	}
+
+	@Override
+	@SneakyThrows(InterruptedException.class)
+	public void handleMessage(SingleOperationMessage message) throws ThreadStopException {
+		if (message instanceof ResumeOperationsMessage) {
+			getLabelObserver().setLabelValue(currentState.name());
+		} else if (message instanceof SuspendOperationsMessage) {
+			getLabelObserver().setLabelValue(currentState.name());
+			synchronized (sleepMonitor) {
+				sleepMonitor.wait();
+			}
+		} else if (message instanceof EOFMessage) {
+			throw new ThreadStopException();
 		}
 	}
 
@@ -95,6 +135,9 @@ public abstract class AbstractThread implements IThread {
 			case paused:
 				checkFileDescriptor(fileDescriptor);
 				currentState = ThreadState.alive;
+				synchronized (sleepMonitor) {
+					sleepMonitor.notify();
+				}
 				break;
 			case death:
 				checkFileDescriptor(fileDescriptor);
@@ -104,6 +147,11 @@ public abstract class AbstractThread implements IThread {
 			putMessageWrapper(new ChangeStateMessage());
 			return currentState;
 		});
+	}
+
+	@Override
+	public void receiveMessage(IMessage message) {
+		putMessageWrapper(message);
 	}
 
 	protected void setState(ThreadState state) throws OperationDeniedException {
@@ -119,6 +167,11 @@ public abstract class AbstractThread implements IThread {
 				currentState = Optional.ofNullable(state).filter((v) -> {
 					return v == ThreadState.alive || v == ThreadState.death;
 				}).orElseThrow(IncorrectFlowState::new);
+				if (state == ThreadState.alive) {
+					synchronized (sleepMonitor) {
+						sleepMonitor.notify();
+					}
+				}
 				break;
 			case death:
 				checkFileDescriptor(fileDescriptor);

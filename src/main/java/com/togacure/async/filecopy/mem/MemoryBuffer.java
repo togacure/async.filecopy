@@ -39,7 +39,7 @@ public class MemoryBuffer {
 	}
 
 	@SneakyThrows(IOException.class)
-	public void in(@NonNull InputStream is, @NonNull Chunk chunk) throws OperationDeniedException {
+	public void in(@NonNull InputStream is, @NonNull Chunk chunk) {
 		chunk.setDataSize(is.read(manager.getBuffer(), chunk.getOffset(), chunk.getSize()));
 		if (chunk.getDataSize() > 0) {
 			change();
@@ -47,7 +47,7 @@ public class MemoryBuffer {
 	}
 
 	@SneakyThrows(IOException.class)
-	public void out(@NonNull OutputStream os, @NonNull Chunk chunk) throws OperationDeniedException {
+	public void out(@NonNull OutputStream os, @NonNull Chunk chunk) {
 		os.write(manager.getBuffer(), chunk.getOffset(), chunk.getDataSize());
 		manager.free(chunk);
 		change();
