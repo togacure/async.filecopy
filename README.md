@@ -1,2 +1,2 @@
 # async.filecopy
-test application (jfx gu)i
+test application (jfx gui)
