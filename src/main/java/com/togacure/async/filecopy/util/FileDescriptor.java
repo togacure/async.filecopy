@@ -5,9 +5,11 @@ import java.io.File;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @AllArgsConstructor
+@ToString
 public final class FileDescriptor {
 
 	private String dir;

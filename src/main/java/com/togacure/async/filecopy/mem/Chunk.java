@@ -5,9 +5,11 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @RequiredArgsConstructor
+@ToString
 @EqualsAndHashCode(exclude = "size")
 public class Chunk implements Comparable<Chunk> {
 
