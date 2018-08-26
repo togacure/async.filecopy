@@ -1,7 +1,7 @@
 package com.togacure.async.filecopy.threads;
 
 import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
-import com.togacure.async.filecopy.ui.ILabelValueObserver;
+import com.togacure.async.filecopy.ui.IUIThreadStateObserver;
 import com.togacure.async.filecopy.util.FileDescriptor;
 import com.togacure.async.filecopy.util.exceptions.CloseFileException;
 import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
@@ -13,7 +13,7 @@ public interface IThread extends Runnable {
 
 	ThreadState getCurrentState();
 
-	ILabelValueObserver getLabelObserver();
+	IUIThreadStateObserver getLabelObserver();
 
 	void switchFile(FileDescriptor fd) throws OperationDeniedException;
 
@@ -24,4 +24,6 @@ public interface IThread extends Runnable {
 	void openFile() throws OperationDeniedException;
 
 	void closeFile() throws CloseFileException;
+
+	void shutdown();
 }

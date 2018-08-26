@@ -8,7 +8,9 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -26,7 +28,10 @@ import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
 import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 
 import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractThread implements IThread, IMessageReceiver {
 
 	private static final int DEFAULT_INITIAL_CAPACITY = 32;
@@ -42,6 +47,8 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	private final Lock lock = new ReentrantLock(true);
 
 	private final Object sleepMonitor = new Object();
+
+	private final AtomicReference<Future<?>> feature = new AtomicReference<Future<?>>(null);
 
 	private final BlockingQueue<IMessage> messageQueue = new PriorityBlockingQueue<IMessage>(DEFAULT_INITIAL_CAPACITY,
 			(v1, v2) -> {
@@ -61,14 +68,18 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	@Override
 	@SneakyThrows({ InterruptedException.class, OperationDeniedException.class })
 	public void run() {
+		log.info("{}", this);
 		IMessage message;
 		while ((message = messageQueue.take()) != null) {
+			log.debug("message: {}", message);
 			if (message instanceof ChangeStateMessage) {
 				switch (getCurrentState()) {
 				case alive:
+					openFile();
 					try {
 						handleMessage(new ResumeOperationsMessage());
 					} catch (ThreadStopException e) {
+						log.info("catch stop");
 						setState(ThreadState.death);
 					}
 					break;
@@ -76,6 +87,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 					try {
 						handleMessage(new SuspendOperationsMessage());
 					} catch (ThreadStopException e) {
+						log.info("catch stop");
 						setState(ThreadState.death);
 					}
 					break;
@@ -87,21 +99,25 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 				try {
 					handleMessage((SingleOperationMessage) message);
 				} catch (ThreadStopException e) {
+					log.info("catch stop");
 					setState(ThreadState.death);
 				}
 			} else {
 				throw new RuntimeException(String.format("Unknown message %s", message));
 			}
 		}
+		log.info("done: {}", this);
 	}
 
 	@Override
 	@SneakyThrows(InterruptedException.class)
 	public void handleMessage(SingleOperationMessage message) throws ThreadStopException {
+		log.debug("message: {}", message);
 		if (message instanceof ResumeOperationsMessage) {
-			getLabelObserver().setLabelValue(currentState.name());
+			getLabelObserver().observeThreadState(currentState);
 		} else if (message instanceof SuspendOperationsMessage) {
-			getLabelObserver().setLabelValue(currentState.name());
+			getLabelObserver().observeThreadState(currentState);
+			log.debug("sleep: {}", this);
 			synchronized (sleepMonitor) {
 				sleepMonitor.wait();
 			}
@@ -112,6 +128,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 
 	@Override
 	public void switchFile(FileDescriptor fd) throws OperationDeniedException {
+		log.info("fd: {}", fd);
 		throwsExecute(lock, () -> {
 			switch (currentState) {
 			case alive:
@@ -128,6 +145,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	@Override
 	public ThreadState switchState() throws OperationDeniedException {
 		return throwsGet(lock, () -> {
+			log.info("currentState: {}", currentState);
 			switch (currentState) {
 			case alive:
 				currentState = ThreadState.paused;
@@ -135,6 +153,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 			case paused:
 				checkFileDescriptor(fileDescriptor);
 				currentState = ThreadState.alive;
+				log.debug("resume: {}", this);
 				synchronized (sleepMonitor) {
 					sleepMonitor.notify();
 				}
@@ -154,8 +173,18 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		putMessageWrapper(message);
 	}
 
+	@Override
+	public void shutdown() {
+		val f = feature.get();
+		log.info("f: {}", f);
+		if (f != null && !f.isCancelled()) {
+			f.cancel(true);
+		}
+	}
+
 	protected void setState(ThreadState state) throws OperationDeniedException {
 		throwsExecute(lock, () -> {
+			log.debug("currentState: {} state: {}", currentState, state);
 			switch (currentState) {
 			case alive:
 				currentState = Optional.ofNullable(state).filter((v) -> {
@@ -168,6 +197,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 					return v == ThreadState.alive || v == ThreadState.death;
 				}).orElseThrow(IncorrectFlowState::new);
 				if (state == ThreadState.alive) {
+					log.debug("resume: {}", this);
 					synchronized (sleepMonitor) {
 						sleepMonitor.notify();
 					}
@@ -175,7 +205,6 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 				break;
 			case death:
 				checkFileDescriptor(fileDescriptor);
-				openFile();
 				currentState = Optional.ofNullable(state).filter((v) -> {
 					return v == ThreadState.alive;
 				}).orElseThrow(IncorrectFlowState::new);
@@ -186,11 +215,16 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	}
 
 	private void startTask() {
-		THREAD_POOL.submit(this);
+		log.info("{}", this);
+		val f = feature.getAndSet(THREAD_POOL.submit(this));
+		if (f != null && !f.isCancelled()) {
+			f.cancel(true);
+		}
 	}
 
 	@SneakyThrows(InterruptedException.class)
 	protected void putMessageWrapper(IMessage msg) {
+		log.debug("currentState: {} msg: {}", currentState, msg);
 		messageQueue.put(msg);
 	}
 

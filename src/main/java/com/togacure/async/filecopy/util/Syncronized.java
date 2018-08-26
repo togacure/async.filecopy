@@ -13,9 +13,9 @@ import lombok.SneakyThrows;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Syncronized {
 
-	@SneakyThrows(OperationDeniedException.class)
+	@SneakyThrows({ InterruptedException.class, OperationDeniedException.class })
 	public static final void execute(@NonNull Lock lock, @NonNull IOperationCallback callback) {
-		lock.lock();
+		lock.lockInterruptibly();
 		try {
 			callback.call();
 		} finally {
@@ -28,8 +28,9 @@ public final class Syncronized {
 		execute(lock, callback);
 	}
 
+	@SneakyThrows(InterruptedException.class)
 	public static final <T> T get(@NonNull Lock lock, @NonNull Supplier<T> supplier) {
-		lock.lock();
+		lock.lockInterruptibly();
 		try {
 			return supplier.get();
 		} finally {

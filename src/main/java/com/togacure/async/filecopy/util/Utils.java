@@ -3,6 +3,7 @@ package com.togacure.async.filecopy.util;
 import java.util.Collection;
 import java.util.Map;
 
+import javafx.scene.control.Alert;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -26,4 +27,11 @@ public abstract class Utils {
 		return false;
 	}
 
+	public static final void alertError(String message) {
+		Alert alert = new Alert(Alert.AlertType.ERROR);
+		alert.setTitle("Error!");
+		alert.setHeaderText(null);
+		alert.setContentText(message);
+		alert.showAndWait();
+	}
 }

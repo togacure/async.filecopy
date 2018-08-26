@@ -9,7 +9,7 @@ import com.togacure.async.filecopy.mem.MemoryBuffer;
 import com.togacure.async.filecopy.threads.messages.FreeChunkMessage;
 import com.togacure.async.filecopy.threads.messages.ReadChunkMessage;
 import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
-import com.togacure.async.filecopy.ui.ILabelValueObserver;
+import com.togacure.async.filecopy.ui.IUIThreadStateObserver;
 import com.togacure.async.filecopy.util.exceptions.CloseFileException;
 import com.togacure.async.filecopy.util.exceptions.FileOperationException;
 import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
@@ -18,7 +18,9 @@ import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class WriteFileThread extends AbstractThread {
 
@@ -30,13 +32,14 @@ public class WriteFileThread extends AbstractThread {
 
 	@Getter
 	@NonNull
-	private final ILabelValueObserver labelObserver;
+	private final IUIThreadStateObserver labelObserver;
 
 	// TODO single read thread
 	private final ThreadLocal<OutputStream> outputStream = new ThreadLocal<OutputStream>();
 
 	@Override
 	public void handleMessage(SingleOperationMessage message) throws ThreadStopException {
+		log.debug("message: {}", message);
 		super.handleMessage(message);
 		if (message instanceof ReadChunkMessage) {
 			buffer.out(outputStream.get(), ((ReadChunkMessage) message).getChunk());
@@ -47,7 +50,9 @@ public class WriteFileThread extends AbstractThread {
 	@Override
 	public void openFile() throws OperationDeniedException {
 		try {
-			outputStream.set(new FileOutputStream(getFileDescriptor().toPath()));
+			if (outputStream.get() == null) {
+				outputStream.set(new FileOutputStream(getFileDescriptor().toPath()));
+			}
 		} catch (FileNotFoundException e) {
 			throw new FileOperationException(e.getMessage());
 		}

@@ -48,14 +48,14 @@
                <children>
                   <Label prefHeight="44.0" prefWidth="47.0" text="state:" />
                   <Label fx:id="readThreadStateLabel" prefHeight="44.0" prefWidth="84.0" text="death" />
-                  <Button mnemonicParsing="false" onAction="#readThreadControl" prefHeight="45.0" prefWidth="65.0" text="start" />
+                  <Button fx:id="readThreadButton" mnemonicParsing="false" onAction="#readThreadControl" prefHeight="45.0" prefWidth="65.0" text="start" />
                </children>
             </HBox>
             <HBox prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="7">
                <children>
                   <Label prefHeight="43.0" prefWidth="48.0" text="state:" />
                   <Label fx:id="writeThreadStateLabel" prefHeight="43.0" prefWidth="83.0" text="death" />
-                  <Button mnemonicParsing="false" onAction="#writeThreadControl" prefHeight="43.0" prefWidth="65.0" text="start" />
+                  <Button fx:id="writeThreadButton" mnemonicParsing="false" onAction="#writeThreadControl" prefHeight="43.0" prefWidth="65.0" text="start" />
                </children>
             </HBox>
             <Label text="Read thread:" GridPane.rowIndex="6" />

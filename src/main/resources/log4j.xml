@@ -4,7 +4,7 @@
     <appender name="console" class="org.apache.log4j.ConsoleAppender">
         <param name="Target" value="System.out"/>
         <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="[%p] [%d] [%t] %C.%M: %m%n"/>
+            <param name="ConversionPattern" value="[%p] [%d] [%t] [%l]: %m%n"/>
         </layout>
     </appender>
     <logger name="com.togacure">

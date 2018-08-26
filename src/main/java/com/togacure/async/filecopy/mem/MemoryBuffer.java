@@ -10,7 +10,10 @@ import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class MemoryBuffer {
 
@@ -27,7 +30,7 @@ public class MemoryBuffer {
 		return manager.getSize();
 	}
 
-	public void realloc(int capacity) throws OperationDeniedException {
+	public void resize(int capacity) throws OperationDeniedException {
 		if (capacity < MIN_BUFFER_SIZE || capacity > MAX_BUFFER_SIZE) {
 			throw new InvalidBufferSizeException(capacity);
 		}
@@ -40,7 +43,9 @@ public class MemoryBuffer {
 
 	@SneakyThrows(IOException.class)
 	public void in(@NonNull InputStream is, @NonNull Chunk chunk) {
-		chunk.setDataSize(is.read(manager.getBuffer(), chunk.getOffset(), chunk.getSize()));
+		val readed = is.read(manager.getBuffer(), chunk.getOffset(), chunk.getSize());
+		chunk.setDataSize(readed);
+		log.debug("chunk: {}", chunk);
 		if (chunk.getDataSize() > 0) {
 			change();
 		}
@@ -48,12 +53,15 @@ public class MemoryBuffer {
 
 	@SneakyThrows(IOException.class)
 	public void out(@NonNull OutputStream os, @NonNull Chunk chunk) {
-		os.write(manager.getBuffer(), chunk.getOffset(), chunk.getDataSize());
+		log.debug("chunk: {}", chunk);
+		if (chunk.getDataSize() > 0) {
+			os.write(manager.getBuffer(), chunk.getOffset(), chunk.getDataSize());
+		}
 		manager.free(chunk);
 		change();
 	}
 
 	private void change() {
-		observer.observe((((double) manager.getSize()) / 100) * manager.getStat());
+		observer.observe((((double) manager.getStat()) / manager.getSize()) * 100);
 	}
 }

@@ -15,7 +15,9 @@ import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MemoryBufferManager {
 
 	public static final int IO_GRANULATION = 0x1000;
@@ -44,6 +46,7 @@ public class MemoryBufferManager {
 			init();
 			return new byte[size];
 		});
+		log.info(" size: {} freeChunks: {}", size, freeChunks);
 	}
 
 	public Chunk malloc() {
@@ -54,6 +57,7 @@ public class MemoryBufferManager {
 			val result = freeChunks.first();
 			freeChunks.remove(result);
 			stat += result.getSize();
+			log.debug("chunk: {} stat: {}", result, stat);
 			return result;
 		});
 	}
@@ -61,7 +65,8 @@ public class MemoryBufferManager {
 	public void free(Chunk chunk) {
 		execute(lock, () -> {
 			freeChunks.add(chunk);
-			stat += chunk.getSize();
+			stat -= chunk.getSize();
+			log.debug("chunk: {} stat: {}", chunk, stat);
 			chunk.setDataSize(0);
 		});
 	}
