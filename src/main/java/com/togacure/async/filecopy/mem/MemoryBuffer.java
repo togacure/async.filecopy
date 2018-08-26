@@ -3,6 +3,7 @@ package com.togacure.async.filecopy.mem;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.togacure.async.filecopy.util.exceptions.InvalidBufferSizeException;
 import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
@@ -22,6 +23,8 @@ public class MemoryBuffer {
 	public static final int MAX_BUFFER_SIZE = 0x100000;
 
 	private final MemoryBufferManager manager = new MemoryBufferManager(INITIAL_BUFFER_SIZE);
+
+	private final AtomicInteger readOrder = new AtomicInteger();
 
 	@NonNull
 	private final IMemoryBufferStateObserver observer;
@@ -45,6 +48,7 @@ public class MemoryBuffer {
 	public void in(@NonNull InputStream is, @NonNull Chunk chunk) {
 		val readed = is.read(manager.getBuffer(), chunk.getOffset(), chunk.getSize());
 		chunk.setDataSize(readed);
+		chunk.setReadOrder(readOrder.getAndIncrement());
 		log.debug("chunk: {}", chunk);
 		if (chunk.getDataSize() > 0) {
 			change();

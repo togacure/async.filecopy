@@ -14,4 +14,11 @@ public class ReadChunkMessage extends SingleOperationMessage {
 
 	@NonNull
 	private final Chunk chunk;
+
+	@Override
+	public int compareTo(IMessage msg) {
+		return (msg instanceof ReadChunkMessage)
+				? Integer.valueOf(chunk.getReadOrder()).compareTo(((ReadChunkMessage) msg).getChunk().getReadOrder())
+				: super.compareTo(msg);
+	}
 }

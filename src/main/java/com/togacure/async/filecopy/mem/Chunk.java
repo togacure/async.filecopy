@@ -19,6 +19,8 @@ public class Chunk implements Comparable<Chunk> {
 	private final Integer size;
 	@Setter
 	private int dataSize = 0;
+	@Setter
+	private int readOrder = 0;
 
 	@Override
 	public int compareTo(Chunk o) {

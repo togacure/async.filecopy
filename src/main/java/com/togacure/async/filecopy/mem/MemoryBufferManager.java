@@ -68,6 +68,7 @@ public class MemoryBufferManager {
 			stat -= chunk.getSize();
 			log.debug("chunk: {} stat: {}", chunk, stat);
 			chunk.setDataSize(0);
+			chunk.setReadOrder(0);
 		});
 	}
 
