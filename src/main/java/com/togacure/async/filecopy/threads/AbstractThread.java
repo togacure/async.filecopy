@@ -106,14 +106,15 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	public void handleMessage(SingleOperationMessage message) throws ThreadStopException {
 		log.debug("message: {}", message);
 		if (message instanceof ResumeOperationsMessage) {
-			getLabelObserver().observeThreadState(currentState);
+			getThreadStateObserver().observeThreadState(currentState);
 		} else if (message instanceof SuspendOperationsMessage) {
-			getLabelObserver().observeThreadState(currentState);
+			getThreadStateObserver().observeThreadState(currentState);
 			log.info("sleep: {}", this);
 			synchronized (sleepMonitor) {
 				sleepMonitor.wait();
 			}
 		} else if (message instanceof EOFMessage) {
+			getCopyCompleteObserver().observeComplete();
 			throw new ThreadStopException();
 		}
 	}
@@ -182,7 +183,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		execute(lock, () -> {
 			closeFile();
 			currentState = ThreadState.death;
-			getLabelObserver().observeThreadState(currentState);
+			getThreadStateObserver().observeThreadState(currentState);
 		});
 	}
 

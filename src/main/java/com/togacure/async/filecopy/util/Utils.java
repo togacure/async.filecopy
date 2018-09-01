@@ -6,6 +6,7 @@ import java.util.Map;
 import javafx.scene.control.Alert;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.val;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public abstract class Utils {
@@ -28,8 +29,16 @@ public abstract class Utils {
 	}
 
 	public static final void alertError(String message) {
-		Alert alert = new Alert(Alert.AlertType.ERROR);
-		alert.setTitle("Error!");
+		alert(Alert.AlertType.ERROR, "Error!", message);
+	}
+
+	public static final void alertInfo(String message) {
+		alert(Alert.AlertType.INFORMATION, "Info!", message);
+	}
+
+	private static final void alert(Alert.AlertType type, String title, String message) {
+		val alert = new Alert(type);
+		alert.setTitle(title);
 		alert.setHeaderText(null);
 		alert.setContentText(message);
 		alert.showAndWait();

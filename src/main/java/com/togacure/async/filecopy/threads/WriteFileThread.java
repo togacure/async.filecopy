@@ -9,6 +9,7 @@ import com.togacure.async.filecopy.mem.MemoryBuffer;
 import com.togacure.async.filecopy.threads.messages.FreeChunkMessage;
 import com.togacure.async.filecopy.threads.messages.ReadChunkMessage;
 import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
+import com.togacure.async.filecopy.ui.IUICopyCompleteObserver;
 import com.togacure.async.filecopy.ui.IUIThreadStateObserver;
 import com.togacure.async.filecopy.util.exceptions.CloseFileException;
 import com.togacure.async.filecopy.util.exceptions.FileOperationException;
@@ -33,7 +34,11 @@ public class WriteFileThread extends AbstractThread {
 
 	@Getter
 	@NonNull
-	private final IUIThreadStateObserver labelObserver;
+	private final IUIThreadStateObserver threadStateObserver;
+
+	@Getter
+	@NonNull
+	private final IUICopyCompleteObserver copyCompleteObserver;
 
 	// TODO single write thread
 	private final ThreadLocal<OutputStream> outputStream = new ThreadLocal<OutputStream>();

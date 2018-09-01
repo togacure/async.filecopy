@@ -1,6 +1,7 @@
 package com.togacure.async.filecopy.threads;
 
 import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
+import com.togacure.async.filecopy.ui.IUICopyCompleteObserver;
 import com.togacure.async.filecopy.ui.IUIThreadStateObserver;
 import com.togacure.async.filecopy.util.FileDescriptor;
 import com.togacure.async.filecopy.util.exceptions.CloseFileException;
@@ -13,7 +14,9 @@ public interface IThread extends Runnable {
 
 	ThreadState getCurrentState();
 
-	IUIThreadStateObserver getLabelObserver();
+	IUIThreadStateObserver getThreadStateObserver();
+
+	IUICopyCompleteObserver getCopyCompleteObserver();
 
 	void switchFile(FileDescriptor fd) throws OperationDeniedException;
 

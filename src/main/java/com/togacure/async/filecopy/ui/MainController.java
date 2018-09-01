@@ -70,6 +70,11 @@ public class MainController {
 			writeThreadStateLabel.setText(st.name());
 			writeThreadButton.setText(st.getButtonLabel().name());
 		});
+	}, () -> {
+		Platform.runLater(() -> {
+			log.info("done");
+			Utils.alertInfo("Copy done.");
+		});
 	});
 
 	@FXML

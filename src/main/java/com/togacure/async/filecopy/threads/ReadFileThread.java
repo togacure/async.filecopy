@@ -12,6 +12,7 @@ import com.togacure.async.filecopy.threads.messages.FreeChunkMessage;
 import com.togacure.async.filecopy.threads.messages.ReadChunkMessage;
 import com.togacure.async.filecopy.threads.messages.ResumeOperationsMessage;
 import com.togacure.async.filecopy.threads.messages.SingleOperationMessage;
+import com.togacure.async.filecopy.ui.IUICopyCompleteObserver;
 import com.togacure.async.filecopy.ui.IUIThreadStateObserver;
 import com.togacure.async.filecopy.util.exceptions.CloseFileException;
 import com.togacure.async.filecopy.util.exceptions.FileOperationException;
@@ -36,7 +37,11 @@ public class ReadFileThread extends AbstractThread {
 
 	@Getter
 	@NonNull
-	private final IUIThreadStateObserver labelObserver;
+	private final IUIThreadStateObserver threadStateObserver;
+
+	@Getter
+	@NonNull
+	private final IUICopyCompleteObserver copyCompleteObserver;
 
 	// TODO single read thread
 	private final ThreadLocal<InputStream> inputStream = new ThreadLocal<InputStream>();
