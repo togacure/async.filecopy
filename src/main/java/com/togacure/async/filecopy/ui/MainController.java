@@ -48,10 +48,6 @@ public class MainController {
 	@FXML
 	private Button writeThreadButton;
 
-	private FileDescriptor inputFile;
-
-	private FileDescriptor outputFile;
-
 	private final ThreadsHolder threadsHolder = new ThreadsHolder((v) -> {
 		log.debug("buffer fill: {}", v);
 		Platform.runLater(() -> {
@@ -80,37 +76,36 @@ public class MainController {
 	@FXML
 	public void selectInputFile(final ActionEvent event) {
 		Platform.runLater(() -> {
-			chooseFile(inputFileLabel, event.getSource(), "Select input file", inputFile, false).ifPresent((fd) -> {
-				log.info("fd: {}", fd);
-				inputFile = fd;
-				inputFileLabel.setText(inputFile.toPath());
-				Optional.ofNullable(outputFile).ifPresent((f) -> {
-					f.setFile(inputFile.getFile());
-					outputFileLabel.setText(f.toPath());
-				});
-				try {
-					threadsHolder.getReadThread().switchFile(fd);
-				} catch (OperationDeniedException e) {
-					log.error("", e);
-					Utils.alertError(e.getMessage());
-				}
-			});
+			chooseFile(inputFileLabel, event.getSource(), "Select input file",
+					threadsHolder.getReadThread().getFileDescriptor(), false).ifPresent((fd) -> {
+						log.info("fd: {}", fd);
+						inputFileLabel.setText(fd.toPath());
+						Optional.ofNullable(threadsHolder.getWriteThread().getFileDescriptor()).ifPresent((f) -> {
+							f.setFile(fd.getFile());
+							outputFileLabel.setText(f.toPath());
+						});
+						try {
+							threadsHolder.getReadThread().switchFile(fd);
+						} catch (OperationDeniedException e) {
+							log.error("", e);
+							Utils.alertError(e.getMessage());
+						}
+					});
 		});
 	}
 
 	@FXML
 	public void selectOutputDirectory(final ActionEvent event) {
 		Platform.runLater(() -> {
-			chooseFile(outputFileLabel, event.getSource(), "Select output directory", outputFile, true)
-					.ifPresent((fd) -> {
+			chooseFile(outputFileLabel, event.getSource(), "Select output directory",
+					threadsHolder.getWriteThread().getFileDescriptor(), true).ifPresent((fd) -> {
 						log.info("fd: {}", fd);
-						outputFile = fd;
-						Optional.ofNullable(inputFile).ifPresent((f) -> {
-							outputFile.setFile(f.getFile());
+						Optional.ofNullable(threadsHolder.getReadThread().getFileDescriptor()).ifPresent((f) -> {
+							fd.setFile(f.getFile());
 						});
-						outputFileLabel.setText(outputFile.toPath());
+						outputFileLabel.setText(fd.toPath());
 						try {
-							threadsHolder.getWriteThread().switchFile(outputFile);
+							threadsHolder.getWriteThread().switchFile(fd);
 						} catch (OperationDeniedException e) {
 							log.error("", e);
 							Utils.alertError(e.getMessage());
