@@ -107,13 +107,9 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		log.debug("message: {}", message);
 		if (message instanceof ResumeOperationsMessage) {
 			getLabelObserver().observeThreadState(currentState);
-			log.debug("resume: {}", this);
-			synchronized (sleepMonitor) {
-				sleepMonitor.notify();
-			}
 		} else if (message instanceof SuspendOperationsMessage) {
 			getLabelObserver().observeThreadState(currentState);
-			log.debug("sleep: {}", this);
+			log.info("sleep: {}", this);
 			synchronized (sleepMonitor) {
 				sleepMonitor.wait();
 			}
@@ -149,6 +145,10 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 			case paused:
 				checkFileDescriptor(fileDescriptor);
 				currentState = ThreadState.alive;
+				log.info("resume: {}", this);
+				synchronized (sleepMonitor) {
+					sleepMonitor.notify();
+				}
 				break;
 			case death:
 				checkFileDescriptor(fileDescriptor);
