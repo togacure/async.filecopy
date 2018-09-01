@@ -44,6 +44,10 @@ public class MemoryBuffer {
 		return manager.malloc();
 	}
 
+	public void free(Chunk chunk) {
+		manager.free(chunk);
+	}
+
 	@SneakyThrows(IOException.class)
 	public void in(@NonNull InputStream is, @NonNull Chunk chunk) {
 		val readed = is.read(manager.getBuffer(), chunk.getOffset(), chunk.getSize());
@@ -61,7 +65,7 @@ public class MemoryBuffer {
 		if (chunk.getDataSize() > 0) {
 			os.write(manager.getBuffer(), chunk.getOffset(), chunk.getDataSize());
 		}
-		manager.free(chunk);
+		free(chunk);
 		change();
 	}
 

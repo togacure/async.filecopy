@@ -53,6 +53,7 @@ public class ReadFileThread extends AbstractThread {
 				if (chunk.getDataSize() >= 0) {
 					writeThreadReceiver.receiveMessage(new ReadChunkMessage(chunk));
 				} else {
+					buffer.free(chunk);
 					writeThreadReceiver.receiveMessage(new EOFMessage());
 					throw new ThreadStopException();
 				}
