@@ -36,8 +36,10 @@ public class AsyncFilecopyApp extends Application {
 	@Override
 	public void stop() throws Exception {
 		log.info("");
-		controller.shutdown();
 		super.stop();
-		Platform.exit();
+		Platform.runLater(() -> {
+			controller.shutdown();
+			Platform.exit();
+		});
 	}
 }

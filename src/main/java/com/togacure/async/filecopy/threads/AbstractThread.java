@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -174,11 +175,16 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	}
 
 	@Override
+	@SneakyThrows(InterruptedException.class)
 	public void shutdown() {
-		val f = feature.get();
+		val f = feature.getAndSet(null);
 		log.info("f: {}", f);
 		if (f != null && !f.isCancelled()) {
 			f.cancel(true);
+		}
+		if (!THREAD_POOL.isShutdown()) {
+			THREAD_POOL.shutdown();
+			THREAD_POOL.awaitTermination(10, TimeUnit.SECONDS);
 		}
 	}
 
