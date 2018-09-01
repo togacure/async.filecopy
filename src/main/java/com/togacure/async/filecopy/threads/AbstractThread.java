@@ -1,5 +1,6 @@
 package com.togacure.async.filecopy.threads;
 
+import static com.togacure.async.filecopy.util.Syncronized.execute;
 import static com.togacure.async.filecopy.util.Syncronized.get;
 import static com.togacure.async.filecopy.util.Syncronized.throwsExecute;
 import static com.togacure.async.filecopy.util.Syncronized.throwsGet;
@@ -8,10 +9,8 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,7 +28,6 @@ import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
 import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 
 import lombok.SneakyThrows;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -48,8 +46,6 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	private final Lock lock = new ReentrantLock(true);
 
 	private final Object sleepMonitor = new Object();
-
-	private final AtomicReference<Future<?>> feature = new AtomicReference<Future<?>>(null);
 
 	private final BlockingQueue<IMessage> messageQueue = new PriorityBlockingQueue<IMessage>(DEFAULT_INITIAL_CAPACITY,
 			(v1, v2) -> {
@@ -70,6 +66,13 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	@SneakyThrows({ InterruptedException.class, OperationDeniedException.class })
 	public void run() {
 		log.info("{}", this);
+		Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
+			log.error("", e);
+			execute(lock, () -> {
+				currentState = ThreadState.death;
+				getLabelObserver().observeThreadState(currentState);
+			});
+		});
 		IMessage message;
 		while ((message = messageQueue.take()) != null) {
 			log.debug("message: {}", message);
@@ -174,16 +177,10 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		putMessageWrapper(message);
 	}
 
-	@Override
 	@SneakyThrows(InterruptedException.class)
-	public void shutdown() {
-		val f = feature.getAndSet(null);
-		log.info("f: {}", f);
-		if (f != null && !f.isCancelled()) {
-			f.cancel(true);
-		}
-		if (!THREAD_POOL.isShutdown()) {
-			THREAD_POOL.shutdown();
+	public static final void shutdown() {
+		if (!THREAD_POOL.isTerminated()) {
+			THREAD_POOL.shutdownNow();
 			THREAD_POOL.awaitTermination(10, TimeUnit.SECONDS);
 		}
 	}
@@ -222,10 +219,7 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 
 	private void startTask() {
 		log.info("{}", this);
-		val f = feature.getAndSet(THREAD_POOL.submit(this));
-		if (f != null && !f.isCancelled()) {
-			f.cancel(true);
-		}
+		THREAD_POOL.execute(this);
 	}
 
 	@SneakyThrows(InterruptedException.class)

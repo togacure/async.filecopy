@@ -25,5 +25,4 @@ public interface IThread extends Runnable {
 
 	void closeFile() throws CloseFileException;
 
-	void shutdown();
 }
