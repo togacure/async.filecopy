@@ -2,6 +2,7 @@ package com.togacure.async.filecopy.ui;
 
 import java.util.Optional;
 
+import com.togacure.async.filecopy.threads.AbstractThread;
 import com.togacure.async.filecopy.threads.ThreadsHolder;
 import com.togacure.async.filecopy.util.FileDescriptor;
 import com.togacure.async.filecopy.util.Utils;
@@ -166,8 +167,9 @@ public class MainController {
 	}
 
 	public void shutdown() {
-		threadsHolder.getReadThread().shutdown();
-		threadsHolder.getWriteThread().shutdown();
+		Platform.runLater(() -> {
+			AbstractThread.shutdown();
+		});
 	}
 
 	private Optional<FileDescriptor> chooseFile(Label label, Object button, String title, FileDescriptor old,
