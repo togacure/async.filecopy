@@ -23,7 +23,6 @@ import com.togacure.async.filecopy.threads.messages.SuspendOperationsMessage;
 import com.togacure.async.filecopy.util.FileDescriptor;
 import com.togacure.async.filecopy.util.Utils;
 import com.togacure.async.filecopy.util.exceptions.FileNotSelectedException;
-import com.togacure.async.filecopy.util.exceptions.IncorrectFlowState;
 import com.togacure.async.filecopy.util.exceptions.OperationDeniedException;
 import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 
@@ -66,49 +65,38 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 	@SneakyThrows({ InterruptedException.class, OperationDeniedException.class })
 	public void run() {
 		log.info("{}", this);
+		openFile();
 		Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
 			log.error("", e);
-			execute(lock, () -> {
-				currentState = ThreadState.death;
-				getLabelObserver().observeThreadState(currentState);
-			});
+			stopTask();
 		});
-		IMessage message;
-		while ((message = messageQueue.take()) != null) {
-			log.debug("message: {}", message);
-			if (message instanceof ChangeStateMessage) {
-				switch (getCurrentState()) {
-				case alive:
-					openFile();
-					try {
+		try {
+			IMessage message;
+			while ((message = messageQueue.take()) != null) {
+				log.debug("message: {}", message);
+
+				if (message instanceof ChangeStateMessage) {
+					switch (getCurrentState()) {
+					case alive:
 						handleMessage(new ResumeOperationsMessage());
-					} catch (ThreadStopException e) {
-						log.info("catch stop");
-						setState(ThreadState.death);
-					}
-					break;
-				case paused:
-					try {
+						break;
+					case paused:
 						handleMessage(new SuspendOperationsMessage());
-					} catch (ThreadStopException e) {
-						log.info("catch stop");
-						setState(ThreadState.death);
+						break;
+					default:
+						log.error("icorrect state: {}", getCurrentState());
+						throw new ThreadStopException();
 					}
-					break;
-				case death:
-					closeFile();
-					return;
-				}
-			} else if (message instanceof SingleOperationMessage) {
-				try {
+				} else if (message instanceof SingleOperationMessage) {
 					handleMessage((SingleOperationMessage) message);
-				} catch (ThreadStopException e) {
-					log.info("catch stop");
-					setState(ThreadState.death);
+
+				} else {
+					throw new RuntimeException(String.format("Unknown message %s", message));
 				}
-			} else {
-				throw new RuntimeException(String.format("Unknown message %s", message));
 			}
+		} catch (ThreadStopException e) {
+			log.info("catch stop");
+			stopTask();
 		}
 		log.info("done: {}", this);
 	}
@@ -119,6 +107,10 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		log.debug("message: {}", message);
 		if (message instanceof ResumeOperationsMessage) {
 			getLabelObserver().observeThreadState(currentState);
+			log.debug("resume: {}", this);
+			synchronized (sleepMonitor) {
+				sleepMonitor.notify();
+			}
 		} else if (message instanceof SuspendOperationsMessage) {
 			getLabelObserver().observeThreadState(currentState);
 			log.debug("sleep: {}", this);
@@ -157,10 +149,6 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 			case paused:
 				checkFileDescriptor(fileDescriptor);
 				currentState = ThreadState.alive;
-				log.debug("resume: {}", this);
-				synchronized (sleepMonitor) {
-					sleepMonitor.notify();
-				}
 				break;
 			case death:
 				checkFileDescriptor(fileDescriptor);
@@ -185,41 +173,17 @@ public abstract class AbstractThread implements IThread, IMessageReceiver {
 		}
 	}
 
-	protected void setState(ThreadState state) throws OperationDeniedException {
-		throwsExecute(lock, () -> {
-			log.debug("currentState: {} state: {}", currentState, state);
-			switch (currentState) {
-			case alive:
-				currentState = Optional.ofNullable(state).filter((v) -> {
-					return v == ThreadState.paused || v == ThreadState.death;
-				}).orElseThrow(IncorrectFlowState::new);
-				break;
-			case paused:
-				checkFileDescriptor(fileDescriptor);
-				currentState = Optional.ofNullable(state).filter((v) -> {
-					return v == ThreadState.alive || v == ThreadState.death;
-				}).orElseThrow(IncorrectFlowState::new);
-				if (state == ThreadState.alive) {
-					log.debug("resume: {}", this);
-					synchronized (sleepMonitor) {
-						sleepMonitor.notify();
-					}
-				}
-				break;
-			case death:
-				checkFileDescriptor(fileDescriptor);
-				currentState = Optional.ofNullable(state).filter((v) -> {
-					return v == ThreadState.alive;
-				}).orElseThrow(IncorrectFlowState::new);
-				startTask();
-			}
-			putMessageWrapper(new ChangeStateMessage());
-		});
-	}
-
 	private void startTask() {
 		log.info("{}", this);
 		THREAD_POOL.execute(this);
+	}
+
+	private void stopTask() {
+		execute(lock, () -> {
+			closeFile();
+			currentState = ThreadState.death;
+			getLabelObserver().observeThreadState(currentState);
+		});
 	}
 
 	@SneakyThrows(InterruptedException.class)

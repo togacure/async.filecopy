@@ -18,6 +18,7 @@ import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,7 +35,7 @@ public class WriteFileThread extends AbstractThread {
 	@NonNull
 	private final IUIThreadStateObserver labelObserver;
 
-	// TODO single read thread
+	// TODO single write thread
 	private final ThreadLocal<OutputStream> outputStream = new ThreadLocal<OutputStream>();
 
 	@Override
@@ -50,9 +51,10 @@ public class WriteFileThread extends AbstractThread {
 	@Override
 	public void openFile() throws OperationDeniedException {
 		try {
-			if (outputStream.get() == null) {
-				outputStream.set(new FileOutputStream(getFileDescriptor().toPath()));
+			if (outputStream.get() != null) {
+				closeFile();
 			}
+			outputStream.set(new FileOutputStream(getFileDescriptor().toPath()));
 		} catch (FileNotFoundException e) {
 			throw new FileOperationException(e.getMessage());
 		}
@@ -60,12 +62,13 @@ public class WriteFileThread extends AbstractThread {
 
 	@Override
 	public void closeFile() throws CloseFileException {
+		val os = outputStream.get();
+		outputStream.set(null);
 		try {
-			outputStream.get().close();
+			os.close();
 		} catch (IOException e) {
 			throw new CloseFileException(e.getMessage());
 		}
-		outputStream.set(null);
 	}
 
 }

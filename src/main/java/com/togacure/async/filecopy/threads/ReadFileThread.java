@@ -21,6 +21,7 @@ import com.togacure.async.filecopy.util.exceptions.ThreadStopException;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -62,9 +63,10 @@ public class ReadFileThread extends AbstractThread {
 	@Override
 	public void openFile() throws OperationDeniedException {
 		try {
-			if (inputStream.get() == null) {
-				inputStream.set(new FileInputStream(getFileDescriptor().toPath()));
+			if (inputStream.get() != null) {
+				closeFile();
 			}
+			inputStream.set(new FileInputStream(getFileDescriptor().toPath()));
 		} catch (FileNotFoundException e) {
 			throw new FileOperationException(e.getMessage());
 		}
@@ -72,12 +74,13 @@ public class ReadFileThread extends AbstractThread {
 
 	@Override
 	public void closeFile() throws CloseFileException {
+		val is = inputStream.get();
+		inputStream.set(null);
 		try {
-			inputStream.get().close();
+			is.close();
 		} catch (IOException e) {
 			throw new CloseFileException(e.getMessage());
 		}
-		inputStream.set(null);
 	}
 
 }
