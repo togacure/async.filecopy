@@ -52,8 +52,10 @@ public class MainController {
 
 	private final ThreadsHolder threadsHolder = new ThreadsHolder((v) -> {
 		log.debug("buffer fill: {}", v);
-		copyBufferFillValueLabel.setText(String.format("%s%", v));
-		copyBufferFillValueProgressBar.setProgress(v);
+		Platform.runLater(() -> {
+			copyBufferFillValueLabel.setText(String.format("%s %%", v));
+			copyBufferFillValueProgressBar.setProgress(v);
+		});
 	}, (st) -> {
 		log.info("read file change state observer: st: {}", st);
 		Platform.runLater(() -> {
