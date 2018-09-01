@@ -14,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -117,10 +118,14 @@ public class MainController {
 		Platform.runLater(() -> {
 			log.debug("value: {}", copyBufferSizeTextField.getText());
 			Optional.ofNullable(copyBufferSizeTextField.getText()).filter(Utils::isNotNullOrEmpty).ifPresent((v) -> {
-				copyBufferSizeTextField.setText(v.replaceAll("[^\\d]", ""));
+				val text = v.replaceAll("[^\\d]", "");
+				val position = copyBufferSizeTextField.getCaretPosition();
+				copyBufferSizeTextField.setText(text);
+				copyBufferSizeTextField.positionCaret(position < text.length() ? position : text.length());
 			});
 			Optional.ofNullable(copyBufferSizeTextField.getText()).filter(Utils::isNullOrEmpty).ifPresent((v) -> {
 				copyBufferSizeTextField.setText("256");
+				copyBufferSizeTextField.positionCaret(3);
 			});
 			try {
 				threadsHolder.getBuffer().resize(Integer.valueOf(copyBufferSizeTextField.getText()));
